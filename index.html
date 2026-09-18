@@ -356,8 +356,35 @@ var CELL = 78;
 
 /* ground */
 (function(){
-  var g = new THREE.Mesh(new THREE.PlaneGeometry(4200, 4200, 1, 1),
-    new THREE.MeshLambertMaterial({ color: 0x080c18 }));
+  var TILES = 55, SIZE = TILES * CELL;                 /* odd count = one tile centred on the origin, like the blocks */
+  var fc = document.createElement('canvas'); fc.width = fc.height = 512;
+  var fx = fc.getContext('2d');
+  var px = 512 / CELL;                                 /* pixels per world unit */
+  fx.fillStyle = '#1a1f2e'; fx.fillRect(0,0,512,512);  /* asphalt */
+  /* pavement block in the middle of the tile */
+  var road = 16 * px, inset = road / 2;
+  fx.fillStyle = '#2a3147'; fx.fillRect(inset, inset, 512 - road, 512 - road);
+  fx.strokeStyle = '#3b4460'; fx.lineWidth = 3; fx.strokeRect(inset + 1.5, inset + 1.5, 512 - road - 3, 512 - road - 3);   /* curb */
+  /* paving seams */
+  fx.strokeStyle = 'rgba(0,0,0,.28)'; fx.lineWidth = 1;
+  for (var q = 1; q < 8; q++){ var qq = inset + (512 - road) * q / 8;
+    fx.beginPath(); fx.moveTo(inset, qq); fx.lineTo(512 - inset, qq); fx.moveTo(qq, inset); fx.lineTo(qq, 512 - inset); fx.stroke(); }
+  /* dashed centre lines on the roads that run along the tile edges */
+  fx.strokeStyle = '#c9b46a'; fx.lineWidth = 2; fx.setLineDash([14, 12]);
+  fx.beginPath(); fx.moveTo(0, 1); fx.lineTo(512, 1); fx.moveTo(1, 0); fx.lineTo(1, 512); fx.stroke();
+  fx.setLineDash([]);
+  /* crossings at the corners */
+  fx.fillStyle = 'rgba(230,235,250,.5)';
+  for (var cw = 0; cw < 5; cw++){ var o = inset + 6 + cw * 8;
+    fx.fillRect(o, 0, 4, inset - 2); fx.fillRect(512 - o - 4, 0, 4, inset - 2);
+    fx.fillRect(o, 512 - inset + 2, 4, inset - 2); fx.fillRect(512 - o - 4, 512 - inset + 2, 4, inset - 2);
+    fx.fillRect(0, o, inset - 2, 4); fx.fillRect(0, 512 - o - 4, inset - 2, 4);
+    fx.fillRect(512 - inset + 2, o, inset - 2, 4); fx.fillRect(512 - inset + 2, 512 - o - 4, inset - 2, 4); }
+  var ftex = new THREE.CanvasTexture(fc);
+  ftex.wrapS = ftex.wrapT = THREE.RepeatWrapping; ftex.repeat.set(TILES, TILES);
+  ftex.anisotropy = renderer.capabilities.getMaxAnisotropy(); ftex.encoding = THREE.sRGBEncoding;
+  var g = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE, 1, 1),
+    new THREE.MeshLambertMaterial({ map: ftex, color: 0xffffff, emissive: 0x2a3350, emissiveIntensity: 0.35, emissiveMap: ftex }));
   g.rotation.x = -Math.PI/2;
   scene.add(g);
   /* street grid glow */
@@ -751,7 +778,7 @@ function collide(dt){
 function step(dt){
   /* look direction on the ground plane */
   var fx = Math.sin(yaw), fz = Math.cos(yaw);
-  var rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  var rx = -Math.cos(yaw), rz = Math.sin(yaw);
 
   /* web button */
   if (input.web && !attached) { if (!tryAttach()) input.web = false; }
