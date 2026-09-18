@@ -43,6 +43,11 @@
   .sub{font-family:"Chakra Petch",monospace;font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;}
   #speed b{color:var(--silk);}
   #orbs b{color:var(--gold);font-size:22px;}
+  #kills b{color:var(--ember);font-size:22px;}
+  #hp{width:150px;height:6px;border:1px solid #2b3a63;background:rgba(10,16,36,.6);border-radius:2px;overflow:hidden;margin:2px 0;}
+  #hp i{display:block;height:100%;width:100%;background:var(--silk);transition:width .15s,background .2s;}
+  #hp.low i{background:var(--ember);}
+  #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center, transparent 55%, rgba(255,60,40,.55) 100%);opacity:0;transition:opacity .12s;}
   .topright{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:calc(env(safe-area-inset-right,0px) + 16px);
     text-align:right;display:flex;flex-direction:column;gap:4px;}
   .pill{font-family:"Chakra Petch",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
@@ -88,9 +93,12 @@
   #bWeb{right:calc(env(safe-area-inset-right,0px) + 20px);bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
     width:104px;height:104px;font-size:15px;border-color:#2f7f72;color:var(--silk);}
   #bWeb.on{background:rgba(79,240,208,.22);}
-  #bBoost{right:calc(env(safe-area-inset-right,0px) + 136px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+  #bBoost{right:calc(env(safe-area-inset-right,0px) + 20px);bottom:calc(env(safe-area-inset-bottom,0px) + 222px);
     width:74px;height:74px;font-size:12px;border-color:#7a3b28;color:var(--ember);}
   #bBoost.on{background:rgba(255,122,77,.2);}
+  #bShoot{right:calc(env(safe-area-inset-right,0px) + 104px);bottom:calc(env(safe-area-inset-bottom,0px) + 222px);
+    width:74px;height:74px;font-size:12px;border-color:#5a6a95;color:#dff9f2;}
+  #bShoot.on{background:rgba(223,249,242,.18);}
   #bJump{right:calc(env(safe-area-inset-right,0px) + 30px);bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
     width:74px;height:74px;font-size:12px;}
   #bJump.on{background:rgba(232,238,252,.14);}
@@ -114,6 +122,14 @@
   #go:active{transform:translateY(1px);}
   #go:focus-visible{outline:3px solid var(--gold);outline-offset:3px;}
   .fine{font-size:11px;margin-top:14px;color:#64729c;line-height:1.5;}
+  #land{font-family:"Chakra Petch",monospace;font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    margin-top:10px;padding:13px 20px;border-radius:3px;background:rgba(79,240,208,.1);color:var(--silk);
+    border:1px solid #2f7f72;cursor:pointer;width:100%;}
+  #land:focus-visible{outline:3px solid var(--gold);outline-offset:3px;}
+  body:not(.touch) #land{display:none;}
+  #rotate{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:6;
+    pointer-events:none;opacity:0;transition:opacity .3s;}
+  @media (orientation:portrait){ body.touch #rotate.show{opacity:1;} }
   #install{font-family:"Chakra Petch",monospace;font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;
     margin-top:10px;padding:13px 20px;border-radius:3px;background:transparent;color:var(--silk);
     border:1px solid #2f7f72;cursor:pointer;width:100%;}
@@ -126,11 +142,14 @@
 
 <div id="stage"></div>
 
+<div id="hurt"></div>
 <div id="hud">
   <div class="readout">
     <div class="stat" id="speed"><b>0</b><span>km/h</span></div>
     <div class="sub" id="alt">ALT 0 m</div>
-    <div class="stat" id="orbs"><b>0</b><span>/ 70 beacons</span></div>
+    <div id="hp"><i></i></div>
+    <div class="stat" id="kills"><b>0</b><span>drones down</span></div>
+    <div class="stat" id="orbs"><b>0</b><span>beacons</span></div>
   </div>
   <div class="topright">
     <div class="pill" id="state">airborne</div>
@@ -155,17 +174,20 @@
   <div class="btn" id="bWeb">Web</div>
   <div class="btn" id="bBoost">Boost</div>
   <div class="btn" id="bJump">Jump</div>
+  <div class="btn" id="bShoot">Shoot</div>
 </div>
 <div id="ctl" class="pill">controls</div>
+<div id="rotate" class="pill">rotate for landscape</div>
 
 <div id="gate">
   <div class="card">
     <div class="eyebrow">Kestrel &middot; night patrol</div>
     <h1>Skyline <em>Slinger</em></h1>
     <p class="lede">Fall, fire a silk line into the nearest tower, and let the pendulum do the rest.
-      Seventy beacons are blinking above Harbour Ward. Collect them without touching the street.</p>
+      The city never ends — it builds itself ahead of you as you swing. Beacons blink above roughly every fourth tower — and patrol drones guard the skyline. Hit a drone at speed, or swing straight through it, to take it down; get shot too often and you wake up on the nearest roof.</p>
     <dl class="keys" id="keyList"></dl>
     <button id="go">Drop in</button>
+    <button id="land" type="button">Play in landscape</button>
     <button id="install" type="button">Install on iPhone</button>
     <ol id="steps" hidden>
       <li>Open this page in <b>Safari</b> (not inside another app).</li>
@@ -196,6 +218,8 @@ document.getElementById('keyList').innerHTML = IS_TOUCH
     '<dt>Web</dt><dd>Hold to swing, release to let go — auto-aim picks the best tower ahead of you</dd>' +
     '<dt>Boost</dt><dd>Sprint on the ground, reel in while swinging</dd>' +
     '<dt>Jump</dt><dd>Leap from a rooftop, the street or a wall</dd>' +
+    '<dt>Shoot</dt><dd>Fire web balls — they home in on the nearest drone in front of you</dd>' +
+    '<dt>Flasks</dt><dd>Green flasks on rooftops heal +40. Health does not come back by itself.</dd>' +
     '<dt>Walls</dt><dd>Hit a tower in the air and you stick — steer to climb, hold Boost to run up it</dd>'
   : '<dt>Mouse</dt><dd>Click once to grab the cursor, then just move it to aim. Esc frees it.</dd>' +
     '<dt>Arrow</dt><dd>The centre arrow points the way you are flying; it glows teal when a web target is in reach</dd>' +
@@ -203,6 +227,8 @@ document.getElementById('keyList').innerHTML = IS_TOUCH
     '<dt>W A S D / arrows</dt><dd>Run, steer in the air, climb on walls</dd>' +
     '<dt>Shift</dt><dd>Sprint on the ground, reel in while swinging</dd>' +
     '<dt>E</dt><dd>Jump from a surface or kick off a wall</dd>' +
+    '<dt>F / right click</dt><dd>Shoot web balls — they home in on the nearest drone in front of you</dd>' +
+    '<dt>Flasks</dt><dd>Green flasks on rooftops heal +40. Health does not come back by itself.</dd>' +
     '<dt>Walls</dt><dd>Hit a tower in the air and you stick — W A S D to climb, hold Shift to run up it</dd>';
 
 /* ------------------------------------------------------------------ scene */
@@ -230,6 +256,7 @@ scene.add(moon);
 var glow = new THREE.PointLight(0x4ff0d0, 1.1, 260, 2);
 scene.add(glow);
 
+var skyDome, stars;
 /* sky dome */
 (function(){
   var c = document.createElement('canvas'); c.width = 8; c.height = 256;
@@ -238,9 +265,9 @@ scene.add(glow);
   g.addColorStop(0.78,'#24284a'); g.addColorStop(1.00,'#3a2b3c');
   var ctx = c.getContext('2d'); ctx.fillStyle = g; ctx.fillRect(0,0,8,256);
   var tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
-  var dome = new THREE.Mesh(new THREE.SphereGeometry(2200, 24, 16),
+  skyDome = new THREE.Mesh(new THREE.SphereGeometry(2200, 24, 16),
     new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog:false, depthWrite:false }));
-  scene.add(dome);
+  scene.add(skyDome);
   /* stars */
   var pts = [], i;
   for (i=0;i<700;i++){
@@ -249,7 +276,8 @@ scene.add(glow);
   }
   var gg = new THREE.BufferGeometry();
   gg.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
-  scene.add(new THREE.Points(gg, new THREE.PointsMaterial({ color:0x9fb4ee, size:3.2, sizeAttenuation:false, fog:false, transparent:true, opacity:.8 })));
+  stars = new THREE.Points(gg, new THREE.PointsMaterial({ color:0x9fb4ee, size:3.2, sizeAttenuation:false, fog:false, transparent:true, opacity:.8 }));
+  scene.add(stars);
 })();
 
 /* window texture */
@@ -295,85 +323,218 @@ function glowSprite(){
 }
 
 /* ------------------------------------------------------------- the city */
-var buildings = [];            // {x,z,hw,hd,h}
+/* Endless: the city is generated one block (cell) at a time from a hash of its grid
+   coordinates, streamed in around the player and dropped again behind them. */
+var buildings = [];            // active {x,z,hw,hd,h} — collision + web raycasts
 var GROUND_Y = 0;
-var CITY = 13;                 // half-extent in cells
 var CELL = 78;
+var VIEW = 13;                 // cells streamed around the player
+var chunks = new Map();        // "gx,gz" -> { group, b, beacon }
+var beacons = [];              // active beacons
+var drones = [];               // active enemy drones
+var potions = [];              // active healing flasks
+var takenPotions = new Set();
+var takenBeacons = new Set();  // cell keys already collected
+var SEED = 1337;
 
-(function buildCity(){
-  var baseGeo = new THREE.BoxGeometry(1,1,1);
-  var tints = [0x161d33, 0x1a2140, 0x121a2e, 0x1e2445, 0x141b30, 0x23263f];
-  var roofMat = new THREE.MeshLambertMaterial({ color: 0x1f2740, emissive: 0x070a14 });
-  for (var gx=-CITY; gx<=CITY; gx++){
-    for (var gz=-CITY; gz<=CITY; gz++){
-      var d2 = gx*gx + gz*gz;
-      if (d2 > CITY*CITY + 6) continue;
-      if ((gx===0 && gz===0)) continue;
-      if (Math.random() < 0.10) continue;            // plazas
-      var cx = gx*CELL + (Math.random()-0.5)*10;
-      var cz = gz*CELL + (Math.random()-0.5)*10;
-      var w  = 26 + Math.random()*26;
-      var d  = 26 + Math.random()*26;
-      var core = Math.max(0, 1 - Math.sqrt(d2)/CITY);
-      var h  = 34 + Math.pow(Math.random(),1.7) * (90 + core*230);
+function hash2(x, y, salt){
+  var h = (x * 374761393 + y * 668265263 + salt * 2246822519 + SEED * 3266489917) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function rng(gx, gz){ var n = 0; return function(){ return hash2(gx, gz, n++); }; }
+function lin(a, b, t){ return a + (b - a) * t; }
+/* smooth "district" value 0..1: clusters of tall towers instead of uniform noise */
+function district(gx, gz){
+  var fx = gx / 6, fz = gz / 6, ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz;
+  tx = tx*tx*(3-2*tx); tz = tz*tz*(3-2*tz);
+  var a = hash2(ix, iz, 99), b = hash2(ix+1, iz, 99), c = hash2(ix, iz+1, 99), d = hash2(ix+1, iz+1, 99);
+  return lin(lin(a, b, tx), lin(c, d, tx), tz);
+}
 
-      var mat = new THREE.MeshLambertMaterial({
-        color: tints[(Math.random()*tints.length)|0],
-        map: WINTEX.clone(), emissive: 0xb9c6ff, emissiveIntensity: 0.95
-      });
-      mat.emissiveMap = mat.map;
-      mat.map.needsUpdate = true;
-      mat.map.repeat.set(Math.max(2, Math.round(w/9)), Math.max(3, Math.round(h/11)));
-      mat.map.offset.set(Math.random(), Math.random());
+var baseGeo = new THREE.BoxGeometry(1,1,1);
+var tints = [0x161d33, 0x1a2140, 0x121a2e, 0x1e2445, 0x141b30, 0x23263f];
+var roofMat = new THREE.MeshLambertMaterial({ color: 0x1f2740, emissive: 0x070a14 });
+var capMat  = new THREE.MeshBasicMaterial({ color: 0xff5a5a });
+var beaconGeo = new THREE.SphereGeometry(2.6, 12, 10);
+var beaconMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
+var beaconHalo = new THREE.SpriteMaterial({ map: glowSprite(), color: 0xffd166, transparent:true, opacity:0.85, depthWrite:false, blending:THREE.AdditiveBlending });
+var lampMat = new THREE.PointsMaterial({ size: 7, vertexColors:true, map: glowSprite(), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+[roofMat, capMat, beaconMat, beaconHalo].forEach(function(m){ if (m.color) m.color.convertSRGBToLinear(); if (m.emissive) m.emissive.convertSRGBToLinear(); });
+var droneBody = new THREE.SphereGeometry(2.2, 12, 10);
+var droneMat  = new THREE.MeshLambertMaterial({ color: 0x2a2f3f, emissive: 0x0b0d16 });
+var eyeMat    = new THREE.SpriteMaterial({ map: glowSprite(), color: 0xff3b3b, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+var rotorGeo  = new THREE.CylinderGeometry(1.6, 1.6, 0.15, 10);
+var rotorMat  = new THREE.MeshBasicMaterial({ color: 0x6a7390, transparent:true, opacity:.55 });
+var boltGeo   = new THREE.SphereGeometry(0.8, 8, 6);
+var boltMat   = new THREE.MeshBasicMaterial({ color: 0xff6a3d });
+[droneMat, rotorMat, boltMat, eyeMat].forEach(function(m){ if (m.color) m.color.convertSRGBToLinear(); if (m.emissive) m.emissive.convertSRGBToLinear(); });
+var killedDrones = new Set();
+var potionGeo = THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(1.1, 1.6, 4, 10) : new THREE.SphereGeometry(1.4, 10, 8);
+var potionMat = new THREE.MeshBasicMaterial({ color: 0x5cff8a });
+var potionHalo = new THREE.SpriteMaterial({ map: glowSprite(), color: 0x5cff8a, transparent:true, opacity:0.8, depthWrite:false, blending:THREE.AdditiveBlending });
+var shotGeo = new THREE.SphereGeometry(1.0, 8, 6);
+var shotMat = new THREE.MeshBasicMaterial({ color: 0xdff9f2 });
+[potionMat, potionHalo, shotMat].forEach(function(m){ m.color.convertSRGBToLinear(); });
+function makeDrone(x, y, z){
+  var g = new THREE.Group();
+  g.add(new THREE.Mesh(droneBody, droneMat));
+  var eye = new THREE.Sprite(eyeMat); eye.scale.set(6, 6, 1); eye.position.set(0, 0, 1.6); g.add(eye);
+  var arms = [[3,0],[-3,0],[0,3],[0,-3]];
+  for (var i=0;i<4;i++){ var r = new THREE.Mesh(rotorGeo, rotorMat); r.position.set(arms[i][0], 1.4, arms[i][1]); g.add(r); }
+  g.position.set(x, y, z);
+  return g;
+}
+var propGeos = { tank: new THREE.CylinderGeometry(2.2, 2.2, 5, 10), vent: new THREE.BoxGeometry(4, 3.5, 4), mast: new THREE.CylinderGeometry(0.25, 0.4, 20, 5) };
 
-      var m = new THREE.Mesh(baseGeo, mat);
-      m.scale.set(w, h, d);
-      m.position.set(cx, h/2, cz);
-      scene.add(m);
+function makeChunk(gx, gz){
+  var R = rng(gx, gz);
+  var group = new THREE.Group();
+  var rec = { group: group, b: null, beacon: null, drones: [], potion: null };
 
-      /* rooftop clutter: water tanks, vents, antennae */
-      var props = 1 + ((Math.random()*3)|0), pi;
-      for (pi=0; pi<props; pi++){
-        var kind = Math.random();
-        var pm;
-        if (kind < 0.4) pm = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 5, 10), roofMat);
-        else if (kind < 0.8) pm = new THREE.Mesh(new THREE.BoxGeometry(3+Math.random()*4, 2.5+Math.random()*3, 3+Math.random()*4), roofMat);
-        else pm = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, 14+Math.random()*12, 5), roofMat);
-        pm.position.set(cx + (Math.random()-0.5)*(w-8), h + 2.5 + (kind>=0.8 ? 6 : 0), cz + (Math.random()-0.5)*(d-8));
-        scene.add(pm);
-      }
-      /* rooftop beacon strip on the taller ones */
-      if (h > 150){
-        var cap = new THREE.Mesh(new THREE.BoxGeometry(w*0.18, 5, d*0.18),
-          new THREE.MeshBasicMaterial({ color: 0xff5a5a }));
-        cap.position.set(cx, h + 2.5, cz);
-        scene.add(cap);
-      }
-      buildings.push({ x:cx, z:cz, hw:w/2, hd:d/2, h:h });
+  /* street lamps for this block (two per block, alternating sides) */
+  var lamps = [gx*CELL - CELL/2 + (R() < 0.5 ? -4 : 4), 6, gz*CELL + (R()-0.5)*CELL*0.8,
+               gx*CELL + (R()-0.5)*CELL*0.8, 6, gz*CELL - CELL/2 + (R() < 0.5 ? -4 : 4)];
+  var lgeo = new THREE.BufferGeometry();
+  lgeo.setAttribute('position', new THREE.Float32BufferAttribute(lamps, 3));
+  lgeo.setAttribute('color', new THREE.Float32BufferAttribute([1,0.72,0.42, 1,0.72,0.42], 3));
+  group.add(new THREE.Points(lgeo, lampMat));
+
+  var isStart = (gx === 0 && gz === 0);
+  if (!isStart && R() >= 0.10){                     /* 10% plazas */
+    var cx = gx*CELL + (R()-0.5)*10, cz = gz*CELL + (R()-0.5)*10;
+    var w = 26 + R()*26, d = 26 + R()*26;
+    var dist = district(gx, gz);
+    var h = 34 + Math.pow(R(), 1.7) * (80 + dist*dist * 300);
+
+    var mat = new THREE.MeshLambertMaterial({
+      color: tints[(R()*tints.length)|0], map: WINTEX.clone(), emissive: 0xb9c6ff, emissiveIntensity: 0.95 });
+    mat.color.convertSRGBToLinear(); mat.emissive.convertSRGBToLinear();
+    mat.emissiveMap = mat.map; mat.map.needsUpdate = true;
+    mat.map.repeat.set(Math.max(2, Math.round(w/9)), Math.max(3, Math.round(h/11)));
+    mat.map.offset.set(R(), R());
+    var m = new THREE.Mesh(baseGeo, mat);
+    m.scale.set(w, h, d); m.position.set(cx, h/2, cz);
+    group.add(m);
+
+    var props = 1 + ((R()*3)|0);
+    for (var pi = 0; pi < props; pi++){
+      var kind = R(), pm;
+      if (kind < 0.4) pm = new THREE.Mesh(propGeos.tank, roofMat);
+      else if (kind < 0.8){ pm = new THREE.Mesh(propGeos.vent, roofMat); pm.scale.set(0.7 + R(), 0.7 + R()*0.8, 0.7 + R()); }
+      else pm = new THREE.Mesh(propGeos.mast, roofMat);
+      pm.position.set(cx + (R()-0.5)*(w-8), h + 2.5 + (kind >= 0.8 ? 7 : 0), cz + (R()-0.5)*(d-8));
+      group.add(pm);
+    }
+    if (h > 150){
+      var cap = new THREE.Mesh(baseGeo, capMat);
+      cap.scale.set(w*0.18, 5, d*0.18); cap.position.set(cx, h + 2.5, cz);
+      group.add(cap);
+    }
+    rec.b = { x:cx, z:cz, hw:w/2, hd:d/2, h:h };
+
+    /* a beacon above roughly every fourth tower */
+    var key = gx + ',' + gz;
+    if (R() < 0.26 && !takenBeacons.has(key)){
+      var bg = new THREE.Group();
+      bg.add(new THREE.Mesh(beaconGeo, beaconMat));
+      var halo = new THREE.Sprite(beaconHalo); halo.scale.set(22, 22, 1); bg.add(halo);
+      bg.position.set(cx + (R()-0.5)*40, h + 14 + R()*70, cz + (R()-0.5)*40);
+      group.add(bg);
+      rec.beacon = { obj: bg, key: key, taken: false, phase: R()*6.28 };
+    }
+    /* patrol drones: about 40% of towers, tall ones often carry a pair */
+    var nDr = (h > 45 && R() < 0.42) ? 1 : 0; if (nDr && h > 130 && R() < 0.5) nDr = 2;
+    for (var di = 0; di < nDr; di++){
+      var dkey = key + ':' + di;
+      if (killedDrones.has(dkey)) continue;
+      var hoverY = h + 16 + R()*24, radius = 18 + R()*22;
+      var dr = makeDrone(cx, hoverY, cz);
+      group.add(dr);
+      rec.drones.push({ obj: dr, key: dkey, cx: cx, cz: cz, y: hoverY, r: radius, a: R()*6.28, spd: 0.35 + R()*0.4, cd: 1 + R()*2, dead: false });
+    }
+    /* a healing flask on some rooftops */
+    if (R() < 0.14 && !takenPotions.has(key)){
+      var pg = new THREE.Group();
+      var flask = new THREE.Mesh(potionGeo, potionMat); pg.add(flask);
+      var ph = new THREE.Sprite(potionHalo); ph.scale.set(14, 14, 1); pg.add(ph);
+      pg.position.set(cx + (R()-0.5)*(w-10), h + 3.2, cz + (R()-0.5)*(d-10));
+      group.add(pg);
+      rec.potion = { obj: pg, key: key, taken: false };
     }
   }
-})();
+  scene.add(group);
+  return rec;
+}
 
-/* ground */
+function disposeChunk(rec){
+  scene.remove(rec.group);
+  rec.group.traverse(function(o){
+    if (o.geometry && o.geometry !== baseGeo && o.geometry !== beaconGeo &&
+        o.geometry !== propGeos.tank && o.geometry !== propGeos.vent && o.geometry !== propGeos.mast) o.geometry.dispose();
+    if (o.material && o.material.map && o.material !== roofMat && o.material !== capMat && o.material !== beaconMat &&
+        o.material !== beaconHalo && o.material !== lampMat){ o.material.map.dispose(); o.material.dispose(); }
+  });
+}
+
+var lastCellX = 1e9, lastCellZ = 1e9, pendingCells = [];
+function rebuildActive(){
+  buildings.length = 0; beacons.length = 0;
+  drones.length = 0; potions.length = 0;
+  chunks.forEach(function(rec){
+    if (rec.b) buildings.push(rec.b);
+    if (rec.beacon && !rec.beacon.taken) beacons.push(rec.beacon);
+    for (var i=0;i<rec.drones.length;i++) if (!rec.drones[i].dead) drones.push(rec.drones[i]);
+    if (rec.potion && !rec.potion.taken) potions.push(rec.potion);
+  });
+}
+function streamCity(force){
+  var cx = Math.round(P.x / CELL), cz = Math.round(P.z / CELL);
+  if (!force && cx === lastCellX && cz === lastCellZ && pendingCells.length === 0) return;
+  if (cx !== lastCellX || cz !== lastCellZ || force){
+    lastCellX = cx; lastCellZ = cz;
+    /* drop what's far behind */
+    var changed = false;
+    chunks.forEach(function(rec, key){
+      var p = key.split(','), dx = +p[0] - cx, dz = +p[1] - cz;
+      if (dx*dx + dz*dz > (VIEW+2)*(VIEW+2)){ disposeChunk(rec); chunks.delete(key); changed = true; }
+    });
+    /* queue what's missing, nearest first */
+    pendingCells.length = 0;
+    for (var gx = cx - VIEW; gx <= cx + VIEW; gx++) for (var gz = cz - VIEW; gz <= cz + VIEW; gz++){
+      var dx = gx - cx, dz = gz - cz;
+      if (dx*dx + dz*dz > VIEW*VIEW) continue;
+      if (!chunks.has(gx + ',' + gz)) pendingCells.push([gx, gz, dx*dx + dz*dz]);
+    }
+    pendingCells.sort(function(a, b){ return a[2] - b[2]; });
+    if (changed) rebuildActive();
+  }
+  /* build a handful per frame so streaming never hitches */
+  var budget = force ? 1e9 : 10, built = 0;
+  while (pendingCells.length && built < budget){
+    var c = pendingCells.shift();
+    chunks.set(c[0] + ',' + c[1], makeChunk(c[0], c[1])); built++;
+  }
+  if (built) rebuildActive();
+}
+
+/* ground: one repeating tile per block, re-centred on the player as they travel */
+var floor;
 (function(){
   var TILES = 55, SIZE = TILES * CELL;                 /* odd count = one tile centred on the origin, like the blocks */
   var fc = document.createElement('canvas'); fc.width = fc.height = 512;
   var fx = fc.getContext('2d');
   var px = 512 / CELL;                                 /* pixels per world unit */
   fx.fillStyle = '#1a1f2e'; fx.fillRect(0,0,512,512);  /* asphalt */
-  /* pavement block in the middle of the tile */
   var road = 16 * px, inset = road / 2;
   fx.fillStyle = '#2a3147'; fx.fillRect(inset, inset, 512 - road, 512 - road);
-  fx.strokeStyle = '#3b4460'; fx.lineWidth = 3; fx.strokeRect(inset + 1.5, inset + 1.5, 512 - road - 3, 512 - road - 3);   /* curb */
-  /* paving seams */
+  fx.strokeStyle = '#3b4460'; fx.lineWidth = 3; fx.strokeRect(inset + 1.5, inset + 1.5, 512 - road - 3, 512 - road - 3);
   fx.strokeStyle = 'rgba(0,0,0,.28)'; fx.lineWidth = 1;
   for (var q = 1; q < 8; q++){ var qq = inset + (512 - road) * q / 8;
     fx.beginPath(); fx.moveTo(inset, qq); fx.lineTo(512 - inset, qq); fx.moveTo(qq, inset); fx.lineTo(qq, 512 - inset); fx.stroke(); }
-  /* dashed centre lines on the roads that run along the tile edges */
   fx.strokeStyle = '#c9b46a'; fx.lineWidth = 2; fx.setLineDash([14, 12]);
   fx.beginPath(); fx.moveTo(0, 1); fx.lineTo(512, 1); fx.moveTo(1, 0); fx.lineTo(1, 512); fx.stroke();
   fx.setLineDash([]);
-  /* crossings at the corners */
   fx.fillStyle = 'rgba(230,235,250,.5)';
   for (var cw = 0; cw < 5; cw++){ var o = inset + 6 + cw * 8;
     fx.fillRect(o, 0, 4, inset - 2); fx.fillRect(512 - o - 4, 0, 4, inset - 2);
@@ -383,53 +544,13 @@ var CELL = 78;
   var ftex = new THREE.CanvasTexture(fc);
   ftex.wrapS = ftex.wrapT = THREE.RepeatWrapping; ftex.repeat.set(TILES, TILES);
   ftex.anisotropy = renderer.capabilities.getMaxAnisotropy(); ftex.encoding = THREE.sRGBEncoding;
-  var g = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE, 1, 1),
+  floor = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE, 1, 1),
     new THREE.MeshLambertMaterial({ map: ftex, color: 0xffffff, emissive: 0x2a3350, emissiveIntensity: 0.35, emissiveMap: ftex }));
-  g.rotation.x = -Math.PI/2;
-  scene.add(g);
-  /* street grid glow */
-  var lines = [], span = (CITY+1)*CELL;
-  for (var i=-CITY; i<=CITY+1; i++){
-    var p = i*CELL - CELL/2;
-    lines.push(-span,0.4,p, span,0.4,p, p,0.4,-span, p,0.4,span);
-  }
-  /* warm street lamps along every avenue */
-  var lamps = [], lc = [], li;
-  for (li=-CITY; li<=CITY; li++){
-    for (var lj=-CITY; lj<=CITY; lj+=1){
-      if (li*li + lj*lj > CITY*CITY) continue;
-      var lx = li*CELL - CELL/2 + (Math.random()<0.5? -4:4), lz = lj*CELL + (Math.random()-0.5)*CELL*0.8;
-      lamps.push(lx, 6, lz); lc.push(1.0, 0.72, 0.42);
-    }
-  }
-  var lgeo = new THREE.BufferGeometry();
-  lgeo.setAttribute('position', new THREE.Float32BufferAttribute(lamps,3));
-  lgeo.setAttribute('color', new THREE.Float32BufferAttribute(lc,3));
-  scene.add(new THREE.Points(lgeo, new THREE.PointsMaterial({ size: 7, vertexColors:true, map: glowSprite(), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })));
-  var lg = new THREE.BufferGeometry();
-  lg.setAttribute('position', new THREE.Float32BufferAttribute(lines,3));
-  scene.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color:0x2a3f72, transparent:true, opacity:.55 })));
+  floor.rotation.x = -Math.PI/2;
+  scene.add(floor);
 })();
 
-/* --------------------------------------------------------------- beacons */
-var BEACON_TOTAL = 70;
-document.querySelector('#orbs span').textContent = '/ ' + BEACON_TOTAL + ' beacons';
-var beacons = [];
-(function(){
-  var geo = new THREE.SphereGeometry(2.6, 12, 10);
-  var mat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
-  var hmat = new THREE.SpriteMaterial({ map: glowSprite(), color: 0xffd166, transparent:true, opacity:0.85, depthWrite:false, blending:THREE.AdditiveBlending });
-  for (var i=0;i<BEACON_TOTAL;i++){
-    var b = buildings[(Math.random()*buildings.length)|0];
-    var m = new THREE.Mesh(geo, mat);
-    var h = new THREE.Sprite(hmat); h.scale.set(22, 22, 1);
-    var grp = new THREE.Group();
-    grp.add(m); grp.add(h);
-    grp.position.set(b.x + (Math.random()-0.5)*40, b.h + 14 + Math.random()*70, b.z + (Math.random()-0.5)*40);
-    scene.add(grp);
-    beacons.push({ obj:grp, taken:false, phase:Math.random()*6.28 });
-  }
-})();
+document.querySelector('#orbs span').textContent = 'beacons';
 
 /* ---------------------------------------------------------------- kestrel */
 var hero = new THREE.Group();
@@ -504,10 +625,32 @@ var grounded = false, groundedOn = 0;
 var swingT = 0, wasGrounded = false;
 var climbing = false, wallN = new THREE.Vector3(), wallB = null, clingCd = 0, wallHit = null;
 var score = 0, best = 0, running = false;
+var health = 100, kills = 0, hurtT = 0, downT = 0;
+var bolts = [];   /* { obj, v:Vector3, life } */
 var camPos = new THREE.Vector3(0, 250, 30);
 var RADIUS = 2.2, GRAV = 36, MAXROPE = 220;
 
-var input = { fwd:0, side:0, web:false, reel:false, jump:false };
+var input = { fwd:0, side:0, web:false, reel:false, jump:false, shoot:false };
+var shots = [], shootCd = 0;
+function shootWeb(){
+  if (shootCd > 0) return;
+  shootCd = 0.32;
+  /* aim at the nearest drone inside a cone in front of the camera, else straight ahead */
+  var dir = camForward().clone(), bestD = null, bestS = 0.86;
+  for (var i = 0; i < drones.length; i++){
+    var d = drones[i]; if (d.dead) continue;
+    _tmp.copy(d.obj.position).sub(P); var dist = _tmp.length(); if (dist > 220) continue;
+    _tmp.multiplyScalar(1/dist);
+    var c = _tmp.dot(dir);
+    if (c > bestS){ bestS = c; bestD = _tmp.clone(); }
+  }
+  if (bestD) dir.copy(bestD);
+  var m = new THREE.Mesh(shotGeo, shotMat);
+  m.position.copy(P).addScaledVector(dir, 3); m.position.y += 1.5;
+  scene.add(m);
+  shots.push({ obj: m, v: dir.multiplyScalar(170).add(V.clone().multiplyScalar(0.5)), life: 1.6 });
+  sfx.shoot();
+}
 
 /* ------------------------------------------------------------------ input */
 var el = renderer.domElement;
@@ -522,12 +665,13 @@ if (true){
   });
   el.addEventListener('mousedown', function(e){
     if (e.button === 0){ input.web = true; }
+    if (e.button === 2){ input.shoot = true; }
     if (!IS_TOUCH && !isLocked() && running && el.requestPointerLock){
       try { el.requestPointerLock(); } catch(err){}
     }
     dragging = true; lastX = e.clientX; lastY = e.clientY;
   });
-  window.addEventListener('mouseup', function(e){ if (e.button===0) input.web = false; dragging = false; });
+  window.addEventListener('mouseup', function(e){ if (e.button===0) input.web = false; if (e.button===2) input.shoot = false; dragging = false; });
   window.addEventListener('mousemove', function(e){
     var dx, dy;
     if (locked){ dx = e.movementX || 0; dy = e.movementY || 0; }           /* mouse = aim, no drag needed */
@@ -550,12 +694,14 @@ if (true){
     if (e.code === 'Space'){ input.web = true; e.preventDefault(); }
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight'){ input.reel = true; e.preventDefault(); }
     if (e.code === 'KeyE') input.jump = true;
+    if (e.code === 'KeyF' || e.code === 'KeyQ') input.shoot = true;
   });
   window.addEventListener('keyup', function(e){
     if (DIR[e.code]){ held[DIR[e.code]] = false; recompute(); }
     if (e.code === 'Space') input.web = false;
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.reel = false;
     if (e.code === 'KeyE') input.jump = false;
+    if (e.code === 'KeyF' || e.code === 'KeyQ') input.shoot = false;
   });
   window.addEventListener('blur', function(){ held = {}; recompute(); input.web = input.reel = input.jump = false; });
 }
@@ -622,7 +768,7 @@ if (true){
     b.addEventListener('pointerup', off);
     b.addEventListener('pointercancel', off);
   }
-  hold('bWeb','web'); hold('bBoost','reel'); hold('bJump','jump');
+  hold('bWeb','web'); hold('bBoost','reel'); hold('bJump','jump'); hold('bShoot','shoot');
 
   /* manual toggle for the on-screen buttons (e.g. iPad with a keyboard, or if detection missed) */
   var ctl = document.getElementById('ctl');
@@ -723,9 +869,11 @@ function tryAttach(){
   }
   webLine.visible = true; anchorDot.visible = true;
   anchorDot.position.copy(anchor);
+  sfx.web(); setTimeout(sfx.attach, 90);
   return true;
 }
 function release(){
+  if (attached) sfx.release();
   if (attached && V.y > -4){
     var hs = Math.hypot(V.x, V.z);
     V.y += 12 + Math.min(10, hs * 0.12);                /* let go on the way up = big launch */
@@ -786,17 +934,18 @@ function step(dt){
 
   /* jump */
   if (input.jump && grounded){
-    V.y = 40; P.y += 0.6;
+    V.y = 40; P.y += 0.6; sfx.jump();
     V.x += fx * 16; V.z += fz * 16;
     input.jump = false; clingCd = 0.3;
   }
-  clingCd -= dt;
+  clingCd -= dt; shootCd -= dt;
+  if (input.shoot) shootWeb();
 
   /* ---- wall climbing ---- */
   if (climbing){
     if (input.web && tryAttach()){ climbing = false; }
     else if (input.jump){
-      climbing = false; input.jump = false; clingCd = 0.35;
+      climbing = false; input.jump = false; clingCd = 0.35; sfx.jump();
       var keepX = V.x * 0.8, keepY = Math.max(0, V.y) * 0.8, keepZ = V.z * 0.8;   /* carry wall-run momentum */
       V.set(wallN.x*22 + keepX, 36 + keepY, wallN.z*22 + keepZ);
     } else {
@@ -878,6 +1027,145 @@ function step(dt){
   updateBeacons(dt);
 }
 
+/* ---- sound: small synthesised effects, started on the first tap ---- */
+var AC = null, master = null, windGain = null;
+function audioInit(){
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.55; master.connect(AC.destination);
+    /* city wind: filtered noise, volume follows speed */
+    var buf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), data = buf.getChannelData(0);
+    for (var i = 0; i < data.length; i++) data[i] = (Math.random()*2-1) * 0.4;
+    var src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+    var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
+    windGain = AC.createGain(); windGain.gain.value = 0.0;
+    src.connect(lp); lp.connect(windGain); windGain.connect(master); src.start();
+  } catch(e){ AC = null; }
+}
+function tone(freq, dur, type, vol, slideTo){
+  if (!AC) return;
+  var o = AC.createOscillator(), g = AC.createGain(), t0 = AC.currentTime;
+  o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+  g.gain.setValueAtTime(vol || 0.3, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noiseBurst(dur, vol, freq){
+  if (!AC) return;
+  var n = AC.createBufferSource(), buf = AC.createBuffer(1, AC.sampleRate * dur, AC.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  n.buffer = buf;
+  var f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 900; f.Q.value = 0.8;
+  var g = AC.createGain(); g.gain.value = vol || 0.4;
+  n.connect(f); f.connect(g); g.connect(master); n.start();
+}
+var sfx = {
+  web:    function(){ noiseBurst(0.18, 0.35, 1800); tone(700, 0.12, 'triangle', 0.15, 240); },
+  attach: function(){ tone(180, 0.09, 'square', 0.18, 120); },
+  release:function(){ tone(420, 0.15, 'sine', 0.12, 900); },
+  shoot:  function(){ noiseBurst(0.09, 0.3, 2600); tone(1200, 0.08, 'triangle', 0.12, 500); },
+  bolt:   function(){ tone(900, 0.14, 'sawtooth', 0.12, 300); },
+  hurt:   function(){ noiseBurst(0.22, 0.5, 400); tone(140, 0.25, 'square', 0.25, 60); },
+  boom:   function(){ noiseBurst(0.45, 0.7, 250); tone(90, 0.4, 'sawtooth', 0.3, 30); },
+  beacon: function(){ tone(880, 0.12, 'sine', 0.22); setTimeout(function(){ tone(1320, 0.18, 'sine', 0.22); }, 90); },
+  potion: function(){ tone(520, 0.1, 'triangle', 0.2); setTimeout(function(){ tone(780, 0.1, 'triangle', 0.2); }, 80); setTimeout(function(){ tone(1040, 0.2, 'triangle', 0.2); }, 160); },
+  jump:   function(){ tone(300, 0.14, 'triangle', 0.15, 620); },
+  ko:     function(){ tone(400, 0.7, 'sawtooth', 0.3, 60); }
+};
+
+var _d = new THREE.Vector3();
+function fireBolt(from, at){
+  var b = new THREE.Mesh(boltGeo, boltMat);
+  b.position.copy(from);
+  var v = _d.copy(at).sub(from).normalize().multiplyScalar(62);
+  /* lead the shot a little toward where you're heading */
+  v.addScaledVector(V, 0.35);
+  scene.add(b);
+  bolts.push({ obj: b, v: v.clone(), life: 3 });
+}
+function damage(n){
+  health = Math.max(0, health - n); hurtT = 0.35; sfx.hurt();
+  if (health <= 0 && downT <= 0){
+    downT = 1.6; flash('Knocked out — back on the rooftops'); sfx.ko();
+    release(); climbing = false;
+    /* respawn above the nearest tower, beacons and kills kept */
+    var nb = null, nd = 1e9;
+    for (var i=0;i<buildings.length;i++){ var d = (buildings[i].x-P.x)*(buildings[i].x-P.x) + (buildings[i].z-P.z)*(buildings[i].z-P.z); if (d < nd){ nd = d; nb = buildings[i]; } }
+    if (nb){ P.set(nb.x, nb.h + 60, nb.z); } else { P.y += 120; }
+    V.set(0, 0, 0); health = 100;
+  }
+}
+function updateDrones(dt, t){
+  var sp = V.length();
+  for (var i=0;i<drones.length;i++){
+    var d = drones[i]; if (d.dead) continue;
+    d.a += d.spd * dt;
+    var o = d.obj;
+    var dx = P.x - o.position.x, dy = P.y - o.position.y, dz = P.z - o.position.z;
+    var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    if (dist < 160){                                   /* alert: face you, drift toward you */
+      o.lookAt(P);
+      o.position.x += dx/dist * 9 * dt; o.position.z += dz/dist * 9 * dt;
+      o.position.y += (P.y + 6 - o.position.y) * 0.4 * dt;
+      d.cd -= dt;
+      if (d.cd <= 0 && dist > 14){ d.cd = 1.6 + Math.random()*0.9; fireBolt(o.position, P); sfx.bolt(); }
+    } else {                                           /* patrol circle above the roof */
+      o.position.x = d.cx + Math.cos(d.a) * d.r; o.position.z = d.cz + Math.sin(d.a) * d.r;
+      o.position.y += (d.y + Math.sin(t*1.3 + d.a) * 2 - o.position.y) * 0.6 * dt;
+      o.rotation.y = -d.a;
+    }
+    o.children[0].rotation.y += dt * 3;
+    for (var k=2;k<6;k++) o.children[k].rotation.y += dt * 30;
+    /* contact */
+    if (dist < 5.5){
+      if (sp > 22 || attached){                        /* fast hit or swing-kick = takedown */
+        d.dead = true; o.visible = false; killedDrones.add(d.key); kills++;
+        flash(kills % 5 === 0 ? kills + ' drones down' : 'Drone down'); sfx.boom();
+        V.multiplyScalar(0.8); V.y += 6;
+      } else {                                         /* bumped into it slowly: it shoves you */
+        damage(12);
+        V.x += dx/dist * -18; V.z += dz/dist * -18; V.y += 8;
+      }
+    }
+  }
+  /* bolts */
+  for (var j=bolts.length-1;j>=0;j--){
+    var b = bolts[j];
+    b.life -= dt;
+    b.obj.position.addScaledVector(b.v, dt);
+    var bx = b.obj.position.x - P.x, by = b.obj.position.y - P.y, bz = b.obj.position.z - P.z;
+    var hit = bx*bx + by*by + bz*bz < 12;
+    if (hit) damage(15);
+    if (hit || b.life <= 0 || b.obj.position.y < 0){ scene.remove(b.obj); bolts.splice(j, 1); }
+  }
+  if (downT > 0) downT -= dt;
+  if (hurtT > 0) hurtT -= dt;
+  /* no regeneration — find a green flask on a rooftop to heal */
+  for (var pi = 0; pi < potions.length; pi++){
+    var pt = potions[pi]; if (pt.taken) continue;
+    pt.obj.rotation.y += dt * 2; pt.obj.children[0].position.y = Math.sin(t*2.5) * 0.4;
+    if (pt.obj.position.distanceTo(P) < 7){
+      pt.taken = true; pt.obj.visible = false; takenPotions.add(pt.key);
+      health = Math.min(100, health + 40); flash('Healed +40'); sfx.potion();
+    }
+  }
+  /* web shots */
+  for (var si = shots.length-1; si >= 0; si--){
+    var sh = shots[si]; sh.life -= dt;
+    sh.obj.position.addScaledVector(sh.v, dt);
+    var killed = false;
+    for (var k2 = 0; k2 < drones.length && !killed; k2++){
+      var dd = drones[k2]; if (dd.dead) continue;
+      if (dd.obj.position.distanceToSquared(sh.obj.position) < 30){
+        dd.dead = true; dd.obj.visible = false; killedDrones.add(dd.key); kills++; killed = true;
+        flash(kills % 5 === 0 ? kills + ' drones down' : 'Webbed!'); sfx.boom();
+      }
+    }
+    if (killed || sh.life <= 0){ scene.remove(sh.obj); shots.splice(si, 1); }
+  }
+}
+
 function updateBeacons(dt){
   for (var i=0;i<beacons.length;i++){
     var bc = beacons[i];
@@ -885,8 +1173,8 @@ function updateBeacons(dt){
     bc.obj.position.y += Math.sin(performance.now()*0.0016 + bc.phase) * 0.035;
     bc.obj.rotation.y += dt;
     if (bc.obj.position.distanceTo(P) < 9){
-      bc.taken = true; bc.obj.visible = false; score++;
-      flash(score >= BEACON_TOTAL ? 'Ward clear — every beacon collected' : 'Beacon ' + score + ' / ' + BEACON_TOTAL);
+      bc.taken = true; bc.obj.visible = false; takenBeacons.add(bc.key); score++; sfx.beacon();
+      flash(score % 10 === 0 ? score + ' beacons — the city goes on forever' : 'Beacon ' + score);
     }
   }
 }
@@ -957,6 +1245,7 @@ function drawCamera(dt){
   glow.position.copy(P);
 }
 
+var elHp = document.getElementById('hp'), elHpBar = elHp.querySelector('i'), elKills = document.querySelector('#kills b'), elHurt = document.getElementById('hurt');
 var elSpeed = document.querySelector('#speed b'),
     elAlt   = document.getElementById('alt'),
     elOrbs  = document.querySelector('#orbs b'),
@@ -970,6 +1259,9 @@ function drawHUD(dt){
   elSpeed.textContent = kmh;
   elAlt.textContent = 'ALT ' + Math.round(P.y) + ' m';
   elOrbs.textContent = score;
+  elKills.textContent = kills;
+  elHpBar.style.width = health + '%'; elHp.className = health < 35 ? 'low' : '';
+  elHurt.style.opacity = hurtT > 0 ? '1' : '0';
   elBest.textContent = 'top ' + best + ' km/h';
   var s = attached ? 'swinging' : climbing ? (input.reel ? 'wall run' : 'climbing') : (grounded ? ((input.reel ? 'sprint · ' : '') + (groundedOn > 1 ? 'rooftop' : 'street')) : 'airborne');
   elState.textContent = s;
@@ -1008,7 +1300,12 @@ function loop(now){
   var dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (!running){ renderer.render(scene, camera); return; }
   var t = now / 1000; dtGlobal = dt;
+  streamCity(false);
+  floor.position.set(Math.round(P.x / CELL) * CELL, 0, Math.round(P.z / CELL) * CELL);
+  skyDome.position.set(P.x, 0, P.z); stars.position.set(P.x, 0, P.z);
   step(dt);
+  updateDrones(dt, t);
+  if (windGain) windGain.gain.value = Math.min(0.5, V.length() / 160);
   drawHero(t);
   drawCamera(dt);
   drawHUD(dt);
@@ -1036,13 +1333,32 @@ function start(saved){
   if (saved && typeof saved.score === 'number'){
     score = saved.score; best = saved.best || 0;
     if (saved.p){ P.set(saved.p[0], saved.p[1], saved.p[2]); }
-    for (var i=0;i<Math.min(score, beacons.length);i++){ beacons[i].taken = true; beacons[i].obj.visible = false; }
+    if (saved.taken) saved.taken.forEach(function(k){ takenBeacons.add(k); });
+    if (saved.killed) saved.killed.forEach(function(k){ killedDrones.add(k); });
+    if (saved.potions) saved.potions.forEach(function(k){ takenPotions.add(k); });
+    if (typeof saved.health === 'number') health = saved.health;
+    kills = saved.kills || 0;
   }
   resize();
+  streamCity(true);
   last = performance.now();
   loop(last);
 }
 
+function goLandscape(){
+  var e = document.documentElement;
+  var fs = e.requestFullscreen || e.webkitRequestFullscreen;
+  var p = fs ? fs.call(e) : null;
+  function lock(){ try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function(){}); } catch(err){} }
+  if (p && p.then) p.then(lock, lock); else lock();
+}
+document.getElementById('land').addEventListener('click', function(){
+  goLandscape();
+  document.getElementById('go').click();
+  /* iPhone Safari can't lock orientation — nudge the player to turn the phone */
+  var r = document.getElementById('rotate'); r.classList.add('show');
+  setTimeout(function(){ r.classList.remove('show'); }, 6000);
+});
 document.getElementById('install').addEventListener('click', function(){
   var st = document.getElementById('steps'); st.hidden = !st.hidden;
   this.textContent = st.hidden ? 'Install on iPhone' : 'Hide steps';
@@ -1053,11 +1369,12 @@ document.getElementById('go').addEventListener('click', function(){
   last = performance.now();
   var e = document.documentElement;
   if (!IS_TOUCH && e.requestFullscreen) { /* leave fullscreen to the user */ }
+  audioInit();
   flash('Fire a line before the street arrives');
 });
 
 if (window.claude && window.claude.hot){
-  window.claude.hot.snapshot(function(){ return { score:score, best:best, p:[P.x,P.y,P.z] }; });
+  window.claude.hot.snapshot(function(){ return { score:score, best:best, kills:kills, p:[P.x,P.y,P.z], taken:Array.from(takenBeacons), killed:Array.from(killedDrones), potions:Array.from(takenPotions), health:health }; });
   window.claude.hot.ready ? window.claude.hot.ready(start) : start(window.claude.hot.data || {});
 } else {
   start({});
