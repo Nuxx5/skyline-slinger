@@ -74,6 +74,14 @@
   #reticle.locked{opacity:1;}
   body.locked-cursor #stage{cursor:none;}
   #stage{cursor:crosshair;}
+  #bossbar{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 54px);transform:translateX(-50%);
+    width:min(46vw,320px);opacity:0;transition:opacity .25s;}
+  #bossbar span{display:block;font-family:"Chakra Petch",monospace;font-size:11px;letter-spacing:.24em;
+    text-transform:uppercase;color:#ffb0a0;text-align:center;margin-bottom:4px;text-shadow:0 1px 8px rgba(6,12,26,.9);}
+  #bossbar i{display:block;height:8px;background:linear-gradient(90deg,#ff7a4d,#ff2f4e);border-radius:2px;
+    box-shadow:0 0 12px rgba(255,80,60,.6);transition:width .2s;}
+  #bossbar.on{opacity:1;}
+  body.peace #bossbar{display:none;}
   #flash{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 120px);transform:translateX(-50%);
     font-family:"Chakra Petch",monospace;font-size:15px;letter-spacing:.1em;text-transform:uppercase;
     color:#ffe6a8;text-shadow:0 2px 12px rgba(6,12,26,.95);opacity:0;transition:opacity .25s;text-shadow:0 0 18px rgba(255,209,102,.5);white-space:nowrap;}
@@ -177,6 +185,7 @@
     <div class="pill" id="landPill" style="pointer-events:auto;cursor:pointer">landscape auto</div>
     <div class="pill" id="modePill" style="pointer-events:auto;cursor:pointer">patrol</div>
   </div>
+  <div id="bossbar"><span>Warden</span><i></i></div>
   <div id="reticle"><svg viewBox="0 0 44 44">
     <circle class="ring" cx="22" cy="22" r="17"/>
     <circle class="dot" cx="22" cy="22" r="2.2"/>
@@ -206,7 +215,7 @@
     <div class="eyebrow">Kestrel &middot; morning patrol</div>
     <h1>Skyline <em>Slinger</em></h1>
     <p class="lede">Sunrise over Harbour Ward. Fall, fire a silk line into the nearest tower, and let the pendulum do the rest.
-      The city never ends — it builds itself ahead of you as you swing. Beacons blink above roughly every fourth tower — and patrol drones guard the skyline (or pick free swing and have the city to yourself). Hit a drone at speed, or swing straight through it, to take it down; get shot too often and you wake up on the nearest roof.</p>
+      The city never ends — it builds itself ahead of you as you swing. Beacons blink above roughly every fourth tower — and patrol drones guard the skyline — and a Warden hangs over the tallest towers, ten hits to bring down (or pick free swing and have the city to yourself). Hit a drone at speed, or swing straight through it, to take it down; get shot too often and you wake up on the nearest roof.</p>
     <dl class="keys" id="keyList"></dl>
     <button id="go">Drop in</button>
     <button id="free" type="button">Free swing &mdash; no drones</button>
@@ -268,9 +277,9 @@ renderer.setClearColor(0xbcd2e6, 1);
 stage.appendChild(renderer.domElement);
 
 var scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0xc6d8e8, 0.0013);   /* low morning haze */
+scene.fog = new THREE.FogExp2(0xc6d8e8, 0.00055);  /* long view over a very big city */
 
-var camera = new THREE.PerspectiveCamera(74, window.innerWidth/window.innerHeight, 0.5, 4000);
+var camera = new THREE.PerspectiveCamera(74, window.innerWidth/window.innerHeight, 0.5, 9000);
 
 scene.add(new THREE.HemisphereLight(0xbcd8ff, 0x6a6152, 1.25));
 var sun = new THREE.DirectionalLight(0xffd7a3, 1.35);   /* low sun, just over the rooftops */
@@ -367,8 +376,8 @@ function glowSprite(){
    coordinates, streamed in around the player and dropped again behind them. */
 var buildings = [];            // active {x,z,hw,hd,h} — collision + web raycasts
 var GROUND_Y = 0;
-var CELL = 78;
-var VIEW = 13;                 // cells streamed around the player
+var CELL = 118;                // wider blocks for a bigger city
+var VIEW = 12;                 // cells streamed around the player
 var chunks = new Map();        // "gx,gz" -> { group, b, beacon }
 var beacons = [];              // active beacons
 var drones = [];               // active enemy drones
@@ -417,6 +426,23 @@ var potionHalo = new THREE.SpriteMaterial({ map: glowSprite(), color: 0x5cff8a, 
 var shotGeo = new THREE.SphereGeometry(1.0, 8, 6);
 var shotMat = new THREE.MeshBasicMaterial({ color: 0xdff9f2 });
 [potionMat, potionHalo, shotMat].forEach(function(m){ m.color.convertSRGBToLinear(); });
+var bossBody = new THREE.IcosahedronGeometry(9, 1);
+var bossMat  = new THREE.MeshLambertMaterial({ color: 0x3b2430, emissive: 0x2a0a10 });
+var bossRing = new THREE.TorusGeometry(15, 1.3, 8, 28);
+var bossRingMat = new THREE.MeshLambertMaterial({ color: 0x8a2a35, emissive: 0x4a0a12 });
+var bossEyeMat = new THREE.SpriteMaterial({ map: glowSprite(), color: 0xff2a2a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+[bossMat, bossRingMat, bossEyeMat].forEach(function(m){ if (m.color) m.color.convertSRGBToLinear(); if (m.emissive) m.emissive.convertSRGBToLinear(); });
+function makeBoss(x, y, z){
+  var g = new THREE.Group();
+  g.add(new THREE.Mesh(bossBody, bossMat));
+  var r1 = new THREE.Mesh(bossRing, bossRingMat); r1.rotation.x = Math.PI/2; g.add(r1);
+  var r2 = new THREE.Mesh(bossRing, bossRingMat); r2.scale.setScalar(0.72); r2.rotation.z = Math.PI/2; g.add(r2);
+  var eye = new THREE.Sprite(bossEyeMat); eye.scale.set(26, 26, 1); g.add(eye);
+  var aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite(), color: 0xff5a3a, transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending }));
+  aura.scale.set(80, 80, 1); g.add(aura);
+  g.position.set(x, y, z);
+  return g;
+}
 function makeDrone(x, y, z){
   var g = new THREE.Group();
   g.add(new THREE.Mesh(droneBody, droneMat));
@@ -444,10 +470,12 @@ function makeChunk(gx, gz){
   var isStart = (gx === 0 && gz === 0);
   if (!isStart && R() >= 0.10){                     /* 10% plazas */
     var cx = gx*CELL + (R()-0.5)*10, cz = gz*CELL + (R()-0.5)*10;
-    var w = 26 + R()*26, d = 26 + R()*26;
+    var w = 42 + R()*44, d = 42 + R()*44;
+    var slim = 1;
     var dist = district(gx, gz);
-    var h = 34 + Math.pow(R(), 1.7) * (80 + dist*dist * 300);
+    var h = 95 + Math.pow(R(), 1.5) * (240 + dist*dist * 1050);   /* 95 m low-rise to ~1.4 km supertall */
 
+    if (h > 600){ slim = 0.72; w *= slim; d *= slim; }        /* supertalls taper */
     var mat = new THREE.MeshLambertMaterial({
       color: tints[(R()*tints.length)|0], map: WINTEX.clone(), emissive: 0x7d8ba4, emissiveIntensity: 0.18 });
     mat.color.convertSRGBToLinear(); mat.emissive.convertSRGBToLinear();
@@ -464,7 +492,8 @@ function makeChunk(gx, gz){
       if (kind < 0.4) pm = new THREE.Mesh(propGeos.tank, roofMat);
       else if (kind < 0.8){ pm = new THREE.Mesh(propGeos.vent, roofMat); pm.scale.set(0.7 + R(), 0.7 + R()*0.8, 0.7 + R()); }
       else pm = new THREE.Mesh(propGeos.mast, roofMat);
-      pm.position.set(cx + (R()-0.5)*(w-8), h + 2.5 + (kind >= 0.8 ? 7 : 0), cz + (R()-0.5)*(d-8));
+      pm.scale.multiplyScalar(1.5);
+      pm.position.set(cx + (R()-0.5)*(w-14), h + 3.5 + (kind >= 0.8 ? 10 : 0), cz + (R()-0.5)*(d-14));
       group.add(pm);
     }
     if (h > 150){
@@ -480,7 +509,7 @@ function makeChunk(gx, gz){
       var bg = new THREE.Group();
       bg.add(new THREE.Mesh(beaconGeo, beaconMat));
       var halo = new THREE.Sprite(beaconHalo); halo.scale.set(22, 22, 1); bg.add(halo);
-      bg.position.set(cx + (R()-0.5)*40, h + 14 + R()*70, cz + (R()-0.5)*40);
+      bg.position.set(cx + (R()-0.5)*40, h + 16 + R()*90, cz + (R()-0.5)*40);
       group.add(bg);
       rec.beacon = { obj: bg, key: key, taken: false, phase: R()*6.28 };
     }
@@ -493,6 +522,15 @@ function makeChunk(gx, gz){
       var dr = makeDrone(cx, hoverY, cz);
       group.add(dr);
       rec.drones.push({ obj: dr, key: dkey, cx: cx, cz: cz, y: hoverY, r: radius, a: R()*6.28, spd: 0.35 + R()*0.4, cd: 1 + R()*2, dead: false });
+    }
+    /* WARDEN: a boss above the supertalls */
+    var bkey = key + ':boss';
+    if (!PEACE && h > 700 && R() < 0.30 && !killedDrones.has(bkey)){
+      var by = h + 55 + R()*60;
+      var bo = makeBoss(cx, by, cz);
+      group.add(bo);
+      rec.drones.push({ obj: bo, key: bkey, cx: cx, cz: cz, y: by, r: 40 + R()*30, a: R()*6.28,
+                        spd: 0.22 + R()*0.2, cd: 2, dead: false, boss: true, hp: 10, maxhp: 10, burst: 0 });
     }
     /* a healing flask on some rooftops */
     if (R() < 0.28 && !takenPotions.has(key)){
@@ -673,7 +711,7 @@ var aimOK = false, aimFrame = 0;
 })();
 
 /* ------------------------------------------------------------------ state */
-var P = new THREE.Vector3(0, 240, 0);      // position
+var P = new THREE.Vector3(0, 520, 0);      // position
 var V = new THREE.Vector3(6, 0, 4);        // velocity
 var yaw = 0, pitch = -0.12;
 var attached = false, anchor = new THREE.Vector3(), ropeLen = 0;
@@ -684,7 +722,7 @@ var score = 0, best = 0, running = false;
 var MAXHP = 200, health = MAXHP, kills = 0, hurtT = 0, downT = 0;
 var bolts = [];   /* { obj, v:Vector3, life } */
 var camPos = new THREE.Vector3(0, 250, 30);
-var RADIUS = 2.2, GRAV = 36, MAXROPE = 220;
+var RADIUS = 2.2, GRAV = 36, MAXROPE = 420;
 
 var input = { fwd:0, side:0, web:false, reel:false, jump:false, shoot:false };
 var shots = [], shootCd = 0;
@@ -1151,6 +1189,20 @@ function fireBolt(from, at){
   scene.add(b);
   bolts.push({ obj: b, v: v.clone(), life: 3 });
 }
+var bossNear = null, bossHitCd = 0;
+function hitBoss(d, n){
+  if (bossHitCd > 0) return;
+  bossHitCd = 0.25;
+  d.hp -= n; sfx.boom();
+  d.obj.children[0].material = d.obj.children[0].material;
+  if (d.hp <= 0){
+    d.dead = true; d.obj.visible = false; killedDrones.add(d.key); kills += 5;
+    health = Math.min(MAXHP, health + 100);
+    flash('WARDEN DOWN — +100 health'); sfx.boom(); setTimeout(sfx.potion, 220);
+  } else {
+    flash('Warden ' + d.hp + ' / ' + d.maxhp);
+  }
+}
 function damage(n){
   health = Math.max(0, health - n); hurtT = 0.35; sfx.hurt();
   if (health <= 0 && downT <= 0){
@@ -1166,12 +1218,44 @@ function damage(n){
 function updateDrones(dt, t){
   var sp = V.length();
   if (PEACE){ drones.length = 0; }
+  bossNear = null;
   for (var i=0;i<drones.length;i++){
     var d = drones[i]; if (d.dead) continue;
     d.a += d.spd * dt;
     var o = d.obj;
     var dx = P.x - o.position.x, dy = P.y - o.position.y, dz = P.z - o.position.z;
     var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+    if (d.boss){
+      o.children[1].rotation.z += dt * 1.4;             /* spinning rings */
+      o.children[2].rotation.x += dt * 2.1;
+      if (dist < 520 && dist < (bossNear ? bossNear.dist : 1e9)) bossNear = { d: d, dist: dist };
+      if (dist < 420){
+        o.lookAt(P);
+        var chase = 26;
+        o.position.x += dx/dist * chase * dt; o.position.z += dz/dist * chase * dt;
+        o.position.y += (P.y + 14 - o.position.y) * 0.7 * dt;
+        d.cd -= dt;
+        if (d.cd <= 0 && dist > 18){
+          d.burst = 3; d.cd = 2.6;
+        }
+        if (d.burst > 0 && (d.cd < 2.6 - (3 - d.burst) * 0.16)){
+          var aim = P.clone();
+          aim.x += (Math.random()-0.5) * 9; aim.y += (Math.random()-0.5) * 9; aim.z += (Math.random()-0.5) * 9;
+          fireBolt(o.position, aim); sfx.bolt(); d.burst--;
+        }
+      } else {
+        o.position.x = d.cx + Math.cos(d.a) * d.r; o.position.z = d.cz + Math.sin(d.a) * d.r;
+        o.position.y += (d.y + Math.sin(t*0.9 + d.a) * 4 - o.position.y) * 0.5 * dt;
+      }
+      if (dist < 13){
+        if (sp > 55 || attached){                       /* a fast pass chips its armour */
+          hitBoss(d, 1); V.multiplyScalar(0.85); V.y += 10;
+        } else { damage(22); V.x += dx/dist * -30; V.z += dz/dist * -30; V.y += 12; }
+      }
+      continue;
+    }
+
     if (dist < 160){                                   /* alert: face you, drift toward you */
       o.lookAt(P);
       o.position.x += dx/dist * 9 * dt; o.position.z += dz/dist * 9 * dt;
@@ -1207,6 +1291,7 @@ function updateDrones(dt, t){
     if (hit) damage(15);
     if (hit || b.life <= 0 || b.obj.position.y < 0){ scene.remove(b.obj); bolts.splice(j, 1); }
   }
+  if (bossHitCd > 0) bossHitCd -= dt;
   if (downT > 0) downT -= dt;
   if (hurtT > 0) hurtT -= dt;
   /* no regeneration — find a green flask on a rooftop to heal */
@@ -1234,9 +1319,14 @@ function updateDrones(dt, t){
     var killed = false;
     for (var k2 = 0; k2 < drones.length && !killed; k2++){
       var dd = drones[k2]; if (dd.dead) continue;
-      if (dd.obj.position.distanceToSquared(sh.obj.position) < 64){
-        dd.dead = true; dd.obj.visible = false; killedDrones.add(dd.key); kills++; killed = true;
-        flash(kills % 5 === 0 ? kills + ' drones down' : 'Webbed!'); sfx.boom();
+      var rr = dd.boss ? 260 : 64;
+      if (dd.obj.position.distanceToSquared(sh.obj.position) < rr){
+        killed = true;
+        if (dd.boss){ bossHitCd = 0; hitBoss(dd, 1); }
+        else {
+          dd.dead = true; dd.obj.visible = false; killedDrones.add(dd.key); kills++;
+          flash(kills % 5 === 0 ? kills + ' drones down' : 'Webbed!'); sfx.boom();
+        }
       }
     }
     if (killed || sh.life <= 0){ scene.remove(sh.obj); shots.splice(si, 1); }
@@ -1322,6 +1412,7 @@ function drawCamera(dt){
   glow.position.copy(P);
 }
 
+var elBoss = document.getElementById('bossbar'), elBossBar = elBoss.querySelector('i');
 var elHp = document.getElementById('hp'), elHpBar = elHp.querySelector('i'), elKills = document.querySelector('#kills b'), elHurt = document.getElementById('hurt');
 var elSpeed = document.querySelector('#speed b'),
     elAlt   = document.getElementById('alt'),
@@ -1339,6 +1430,8 @@ function drawHUD(dt){
   elKills.textContent = kills;
   elHpBar.style.width = (health / MAXHP * 100) + '%'; elHp.className = health < MAXHP * 0.3 ? 'low' : '';
   elHurt.style.opacity = hurtT > 0 ? '1' : '0';
+  if (bossNear){ elBoss.className = 'on'; elBossBar.style.width = (bossNear.d.hp / bossNear.d.maxhp * 100) + '%'; }
+  else elBoss.className = '';
   elBest.textContent = 'top ' + best + ' km/h';
   var s = attached ? 'swinging' : climbing ? (input.reel ? 'wall run' : 'climbing') : (grounded ? ((input.reel ? 'sprint · ' : '') + (groundedOn > 1 ? 'rooftop' : 'street')) : 'airborne');
   elState.textContent = s;
